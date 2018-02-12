@@ -1,0 +1,119 @@
+%profesor(profe,cedula,hDisponibles,aImparte).
+%asignatura(nombre,tipoAula,creditos,semestre).
+%aula(nombre,numero,capacidad,horasOcupada[]).
+%dia(nombre,manana[],tarde[]).
+%clase(nombre,aula,dia,hora,semestre,profesor).
+%current_predicate
+%
+:-dynamic profesor/4.
+profesor(steven,1,[(lunes,7:55)],[comunicacion]).
+profesor(eliomar,3,[(lunes,7:00)],[algebra]).
+profesor(jafeth,2,[(jueves,12:30),(lunes,7:55)],[lenguajes,bases]).
+profesor(alberth,4,[(viernes,7:55)],[comunicacion]).
+profesor(misael,5,[(miercoles,7:00)],[algebra]).
+profesor(twin,6,[(miercoles,12:30),(lunes,7:55)],[lenguajes,bases]).
+
+dia(lunes).
+dia(martes).
+dia(miercoles).
+dia(jueves).
+dia(viernes).
+leccion(7:00).
+leccion(7:55).
+leccion(8:50).
+leccion(9:45).
+leccion(10:40).
+leccion(12:30).
+leccion(13:25).
+leccion(14:20).
+leccion(15:10).
+
+:-dynamic clase/6.
+
+:-dynamic aula/4.
+aula(normal,3,30,[(lunes,7:00)]).
+aula(laboratorio,1,24,[(viernes,8:50),(miercoles,7:00),(lunes,8:50)]).
+aula(laboratorio,2,24,[(viernes,8:50),(miercoles,7:00),(lunes,9:45)]).
+
+
+asignatura(lenguajes,laboratorio,4,ii).
+asignatura(bases,laboratorio,4,ii).
+asignatura(algebra,normal,4,ii).
+asignatura(comunicacion,normal,2,i).
+
+
+pertenece(X,[X|_]):-!.
+pertenece(X,[_|C]):-pertenece(X,C).
+
+
+disponibleAula(Nombre,Numero,Dia,Hora):-
+    dia(Dia),
+    leccion(Hora),
+    aula(Nombre,Numero,_,ListaHoras),
+    not(pertenece((Dia,Hora),ListaHoras)).
+
+disponibleProfesor(Cedula,Asignatura,Dia,Hora):-
+    profesor(_,Cedula,HorarioProfe,AsignaturasProfesor),
+    pertenece(Asignatura,AsignaturasProfesor),
+    not(pertenece((Dia,Hora),HorarioProfe)).
+
+actualizaProfesor(Cedula,Dia,Hora):-
+    retract(profesor(Nombre,Cedula,HorarioProfe,AsignaturasProfesor)),
+    append(HorarioProfe,[(Dia,Hora)],NH),
+    asserta(profesor(Nombre,Cedula,NH,AsignaturasProfesor)).
+
+
+actualizaAula(Aula,Numero,Dia,Hora):-
+    retract(aula(Aula,Numero,CA,HA)),
+    append(HA,[(Dia,Hora)],NH),
+    asserta(aula(Aula,Numero,CA,NH)).
+
+
+creaClase(Asignatura,(Aula,Numero),Dia,Hora,Semestre,CedulaProfesor):-
+    %not(clase(Asignatura,(Aula,Numero),Dia,Hora,Semestre,CedulaProfesor)),
+    %not(clase(_,(_,_),Dia,Hora,_,_)),
+    asignatura(Asignatura,Aula,_,Semestre),
+    dia(Dia),
+    leccion(Hora),
+    not(clase(_,(_,_),Dia,Hora,_,_)),
+    disponibleAula(Aula,Numero,Dia,Hora),
+    disponibleProfesor(CedulaProfesor,Asignatura,Dia,Hora),
+    actualizaProfesor(CedulaProfesor,Dia,Hora),
+    actualizaAula(Aula,Numero,Dia,Hora),
+    asserta(clase(Asignatura,(Aula,Numero),Dia,Hora,Semestre,CedulaProfesor)),
+    %asserta(enClase(Dia,Hora)),
+    !.
+creaClase(Asignatura):-
+    %not(clase(Asignatura,(_,_),_,_,_,_)),
+    %not(clase(_,(_,_),Dia,Hora,_,_)),
+    asignatura(Asignatura,Aula,_,Semestre),
+    dia(Dia),
+    leccion(Hora),
+    not(clase(_,(_,_),Dia,Hora,_,_)),
+    disponibleAula(Aula,Numero,Dia,Hora),
+    disponibleProfesor(CedulaProfesor,Asignatura,Dia,Hora),
+    actualizaProfesor(CedulaProfesor,Dia,Hora),
+    actualizaAula(Aula,Numero,Dia,Hora),
+    asserta(clase(Asignatura,(Aula,Numero),Dia,Hora,Semestre,CedulaProfesor)),
+    %asserta(enClase(Dia,Hora)),
+    !.
+
+
+%Este creaHorario crea las clases que pueda crear de la lista,
+% En otras palabras ignora los que fallan y continua intentando crear
+% las que pueda, ahora bien, lo que debemos hacer es que si una
+% falla,devuelva un false y listo, se rompa, y si devuelve un true cree
+% el horario(cosa que falta), pero lo que se hace falta es q devuelva
+% false si encuentra una que no se puede.
+%creaHorario([]).
+%creaHorario([Curso|RestoCursos]):-
+%    (   creaClase(Curso)
+%    ->  creaHorario(RestoCursos)
+%    ;   false    ).
+
+%creaHorarioTemp([]).
+%creaHorarioTemp([Curso|RestoCursos]):-
+%    (   creaClase(Curso)
+%    ->  creaHorarioTemp(RestoCursos)
+%    ;   creaHorarioTemp(RestoCursos)
+%    ).
